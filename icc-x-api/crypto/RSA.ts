@@ -1,4 +1,4 @@
-import { LocalStorageProxy } from "icc-x-api/storage/storage"
+import { LocalStorageProxy } from "../storage/storage"
 
 export class RSAUtils {
   /********* RSA Config **********/
@@ -241,5 +241,3 @@ export class RSAUtils {
     )
   }
 }
-
-export const RSA = new RSAUtils()

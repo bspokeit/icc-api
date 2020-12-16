@@ -59,7 +59,8 @@ export const Api = function(
     ? window.fetch
     : typeof self !== "undefined"
       ? self.fetch
-      : fetch
+      : fetch,
+  storage?: Storage
 ) {
   const headers = apiHeaders(username, password)
   const authApi = new IccAuthApi(host, headers, fetchImpl)
@@ -71,7 +72,8 @@ export const Api = function(
     headers,
     healthcarePartyApi,
     new IccPatientApi(host, headers, fetchImpl),
-    crypto
+    crypto,
+    storage
   )
   const accessLogApi = new IccAccesslogXApi(host, headers, cryptoApi, fetchImpl)
   const contactApi = new IccContactXApi(host, headers, cryptoApi, fetchImpl)

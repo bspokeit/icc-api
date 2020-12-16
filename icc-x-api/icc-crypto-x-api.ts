@@ -1,8 +1,8 @@
 import { IccHcpartyApi, IccPatientApi } from "../icc-api"
-import { AES, AESUtils } from "./crypto/AES"
-import { RSA, RSAUtils } from "./crypto/RSA"
+import { AESUtils } from "./crypto/AES"
+import { RSAUtils } from "./crypto/RSA"
 import { utils, UtilsClass } from "./crypto/utils"
-import { shamir, ShamirClass } from "./crypto/shamir"
+import { ShamirClass } from "./crypto/shamir"
 
 import * as _ from "lodash"
 import * as models from "../icc-api/model/models"
@@ -102,9 +102,8 @@ export class IccCryptoXApi {
     this.crypto = crypto
     this.storage = new LocalStorageProxy(storage)
     this.generateKeyConcurrencyMap = {}
-
     this._AES = new AESUtils(crypto)
-    this._RSA = new RSAUtils(crypto)
+    this._RSA = new RSAUtils(crypto, storage)
     this._utils = new UtilsClass()
     this._shamir = new ShamirClass(crypto)
   }

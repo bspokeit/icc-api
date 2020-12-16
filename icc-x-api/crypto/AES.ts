@@ -1,5 +1,4 @@
 import { utils } from "./utils"
-import { debuglog } from "util"
 
 export class AESUtils {
   /********* AES Config **********/
@@ -119,7 +118,7 @@ export class AESUtils {
     return new Promise(
       (resolve: (value: CryptoKey | string) => any, reject: (reason: any) => any) => {
         const extractable = true
-        const keyUsages = ["decrypt", "encrypt"]
+        const keyUsages: KeyUsage[] = ["decrypt", "encrypt"]
         if (toHex === undefined || !toHex) {
           return this.crypto.subtle
             .generateKey(this.aesKeyGenParams, extractable, keyUsages)
@@ -170,7 +169,7 @@ export class AESUtils {
   importKey(format: string, aesKey: JsonWebKey | ArrayBuffer | Uint8Array) {
     return new Promise((resolve: (value: CryptoKey) => any, reject: (reason: any) => any) => {
       var extractable = true
-      var keyUsages = ["decrypt", "encrypt"]
+      var keyUsages: KeyUsage[] = ["decrypt", "encrypt"]
       return this.crypto.subtle
         .importKey(format, aesKey, this.aesKeyGenParams, extractable, keyUsages)
         .then(resolve, reject)
