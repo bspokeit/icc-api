@@ -16,7 +16,7 @@ export class RSAUtils {
   rsaLocalStoreIdPrefix: string = "org.taktik.icure.rsa."
   rsaKeyPairs: any = {}
   private crypto: Crypto
-  private storageBridge: LocalStorageProxy
+  private storage: LocalStorageProxy
 
   constructor(
     crypto: Crypto = typeof window !== "undefined"
@@ -27,7 +27,7 @@ export class RSAUtils {
     storage?: Storage
   ) {
     this.crypto = crypto
-    this.storageBridge = new LocalStorageProxy(storage)
+    this.storage = new LocalStorageProxy(storage)
   }
 
   /**
@@ -189,7 +189,7 @@ export class RSAUtils {
    */
   storeKeyPair(id: string, keyPair: { publicKey: any; privateKey: any }) {
     //TODO encryption
-    this.storageBridge.setItem(this.rsaLocalStoreIdPrefix + id, JSON.stringify(keyPair))
+    this.storage.setItem(this.rsaLocalStoreIdPrefix + id, JSON.stringify(keyPair))
   }
 
   /**
@@ -200,9 +200,7 @@ export class RSAUtils {
    */
   loadKeyPairNotImported(id: string): { publicKey: any; privateKey: any } {
     //TODO decryption
-    return JSON.parse(
-      (this.storageBridge.getItem(this.rsaLocalStoreIdPrefix + id) as string) || "{}"
-    )
+    return JSON.parse((this.storage.getItem(this.rsaLocalStoreIdPrefix + id) as string) || "{}")
   }
 
   /**
@@ -215,7 +213,7 @@ export class RSAUtils {
     return new Promise(
       (resolve: (value: { publicKey: CryptoKey; privateKey: CryptoKey }) => any, reject) => {
         try {
-          const jwkKey = this.storageBridge.getItem(this.rsaLocalStoreIdPrefix + id) as string
+          const jwkKey = this.storage.getItem(this.rsaLocalStoreIdPrefix + id) as string
           if (jwkKey) {
             const jwkKeyPair = JSON.parse(jwkKey)
             if (jwkKeyPair.publicKey && jwkKeyPair.privateKey) {
