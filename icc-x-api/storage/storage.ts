@@ -40,9 +40,6 @@ export class LocalStorageProxy implements Storage {
    * @param storage
    */
   private getDefaultStorage(): Storage {
-    console.log(
-      "No Local Storage implementation found, defaulting to possible HTML5 Browser Local Storage support...\n"
-    )
     if (typeof Storage === "undefined") {
       console.log("Your browser does not support HTML5 Browser Local Storage !")
       throw "Your browser does not support HTML5 Browser Local Storage !"
