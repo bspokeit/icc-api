@@ -1435,7 +1435,7 @@ export class IccCryptoXApi {
   // noinspection JSUnusedGlobalSymbols
   loadKeyPairsInBrowserLocalStorage(healthcarePartyId: string, file: Blob) {
     const fr = new FileReader()
-    return new Promise((resolve: (() => void), reject) => {
+    return new Promise((resolve: ((value: unknown) => void), reject) => {
       fr.onerror = reject
       fr.onabort = reject
       fr.onload = (e: any) => {
