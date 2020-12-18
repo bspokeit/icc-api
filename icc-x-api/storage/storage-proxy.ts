@@ -52,7 +52,7 @@ export class LocalStorageProxy implements Storage {
     return this.storage
   }
 
-  public length: number = this.getStorage().length
+  public length: number = this.getStorage() ? this.getStorage().length : 0
 
   public clear(): void {
     this.getStorage().clear()
