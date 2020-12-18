@@ -5,8 +5,8 @@ import * as _ from "lodash"
 import * as encoding from "text-encoding"
 
 export class UtilsClass {
-  private textDecoder = TextDecoder ? new TextDecoder() : new encoding.TextDecoder()
-  private textEncoder = TextEncoder ? new TextEncoder() : new encoding.TextEncoder()
+  private textDecoder = new encoding.TextDecoder()
+  private textEncoder = new encoding.TextEncoder()
 
   constructor() {}
 
