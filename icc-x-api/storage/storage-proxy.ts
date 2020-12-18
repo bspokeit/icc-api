@@ -18,6 +18,8 @@
  *  3. Proxy any storage related request to either the defined storage instance or the default localStorage if present
  */
 
+import { InMemoryStorage } from "./in-memory-storage"
+
 export class LocalStorageProxy implements Storage {
   private storage?: Storage
 
@@ -40,12 +42,16 @@ export class LocalStorageProxy implements Storage {
    * @param storage
    */
   private getDefaultStorage(): Storage {
-    if (typeof Storage === "undefined") {
-      console.log("Your browser does not support HTML5 Browser Local Storage !")
-      throw "Your browser does not support HTML5 Browser Local Storage !"
+    if (typeof Storage !== "undefined") {
+      return localStorage
     }
 
-    return localStorage
+    console.log("Your browser does not support HTML5 Browser Local Storage !")
+    console.log("Providing you with a in memory storage...")
+    console.log("Please, refer to the InMemoryClass.ts for further integration.")
+
+    this.storage = new InMemoryStorage()
+    return this.storage
   }
 
   public length: number = this.getStorage().length

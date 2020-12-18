@@ -7,7 +7,7 @@ import { ShamirClass } from "./crypto/shamir"
 import * as _ from "lodash"
 import * as models from "../icc-api/model/models"
 import { Delegation, HealthcareParty, Patient } from "../icc-api/model/models"
-import { LocalStorageProxy } from "./storage/storage"
+import { LocalStorageProxy } from "./storage/storage-proxy"
 
 export class IccCryptoXApi {
   get shamir(): ShamirClass {

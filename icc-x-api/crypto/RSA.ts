@@ -1,4 +1,4 @@
-import { LocalStorageProxy } from "../storage/storage"
+import { LocalStorageProxy } from "../storage/storage-proxy"
 
 export class RSAUtils {
   /********* RSA Config **********/
