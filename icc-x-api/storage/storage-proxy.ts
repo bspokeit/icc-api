@@ -47,10 +47,10 @@ export class LocalStorageProxy implements Storage {
     }
 
     console.log("Your browser does not support HTML5 Browser Local Storage !")
-    console.log("Providing you with a in memory storage...")
+    console.log("Providing you with a singleton in memory storage...")
     console.log("Please, refer to the InMemoryClass.ts for further integration.")
 
-    this.storage = new InMemoryStorage()
+    this.storage = InMemoryStorage.getInstance()
     return this.storage
   }
 

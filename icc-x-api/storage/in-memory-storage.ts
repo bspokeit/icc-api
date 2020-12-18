@@ -1,7 +1,19 @@
 export class InMemoryStorage implements Storage {
+  private static inMemoryStorage: InMemoryStorage
+
   private storage: { [key: string]: string } = {}
 
-  constructor() {}
+  constructor() {
+    console.log("Intanciating a new InMemoryStorage")
+  }
+
+  public static getInstance(): InMemoryStorage {
+    if (!InMemoryStorage.inMemoryStorage) {
+      InMemoryStorage.inMemoryStorage = new InMemoryStorage()
+    }
+
+    return InMemoryStorage.inMemoryStorage
+  }
 
   length: number = 0
 
