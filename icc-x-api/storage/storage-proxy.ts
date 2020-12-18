@@ -21,10 +21,27 @@
 import { InMemoryStorage } from "./in-memory-storage"
 
 export class LocalStorageProxy implements Storage {
-  private storage?: Storage
+  private static instance: LocalStorageProxy
 
-  constructor(storage?: Storage) {
-    this.storage = storage
+  private storage: Storage
+
+  private constructor() {
+    if (typeof Storage !== "undefined") {
+      this.storage = localStorage
+    }
+
+    console.log("Your browser does not support HTML5 Browser Local Storage !")
+    console.log("Proxying to a in memory storage...")
+
+    this.storage = new InMemoryStorage()
+  }
+
+  public static getInstance(): LocalStorageProxy {
+    if (!LocalStorageProxy.instance) {
+      LocalStorageProxy.instance = new LocalStorageProxy()
+    }
+
+    return LocalStorageProxy.instance
   }
 
   /**
@@ -32,25 +49,6 @@ export class LocalStorageProxy implements Storage {
    * or return a possible default storage provided by getDefaultStorage().
    */
   private getStorage(): Storage {
-    return this.storage || this.getDefaultStorage()
-  }
-
-  /**
-   * getDefaultStorage static method checks if a default storage is available and returns it if it exists.
-   * If no such default storage is present, the method throw an error assuming the default storage is provided
-   * by a HTML5 Browser Local Storage.
-   * @param storage
-   */
-  private getDefaultStorage(): Storage {
-    if (typeof Storage !== "undefined") {
-      return localStorage
-    }
-
-    console.log("Your browser does not support HTML5 Browser Local Storage !")
-    console.log("Providing you with a singleton in memory storage...")
-    console.log("Please, refer to the InMemoryClass.ts for further integration.")
-
-    this.storage = InMemoryStorage.getInstance()
     return this.storage
   }
 

@@ -23,11 +23,10 @@ export class RSAUtils {
       ? window.crypto
       : typeof self !== "undefined"
         ? self.crypto
-        : ({} as Crypto),
-    storage?: Storage
+        : ({} as Crypto)
   ) {
     this.crypto = crypto
-    this.storage = new LocalStorageProxy(storage)
+    this.storage = LocalStorageProxy.getInstance()
   }
 
   /**

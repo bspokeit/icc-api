@@ -94,16 +94,15 @@ export class IccCryptoXApi {
       ? window.crypto
       : typeof self !== "undefined"
         ? self.crypto
-        : ({} as Crypto),
-    storage?: Storage
+        : ({} as Crypto)
   ) {
     this.hcpartyBaseApi = hcpartyBaseApi
     this.patientBaseApi = patientBaseApi
     this.crypto = crypto
-    this.storage = new LocalStorageProxy(storage)
+    this.storage = LocalStorageProxy.getInstance()
     this.generateKeyConcurrencyMap = {}
     this._AES = new AESUtils(crypto)
-    this._RSA = new RSAUtils(crypto, storage)
+    this._RSA = new RSAUtils(crypto)
     this._utils = new UtilsClass()
     this._shamir = new ShamirClass(crypto)
   }
