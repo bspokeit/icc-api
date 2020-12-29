@@ -1585,25 +1585,25 @@ export class IccCryptoXApi {
   }
 
   // noinspection JSUnusedGlobalSymbols
-  checkPrivateKeyValidity(hcp: models.HealthcareParty | models.Patient): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
-      this._RSA
-        .importKey("jwk", utils.spkiToJwk(utils.hex2ua(hcp.publicKey!)), ["encrypt"])
-        .then(k => this._RSA.encrypt(k, this._utils.utf82ua("shibboleth")))
-        .then(cipher => {
-          const kp = this._RSA.loadKeyPairNotImported(hcp.id!)
-          return this._RSA
-            .importKeyPair("jwk", kp.privateKey, "jwk", kp.publicKey)
-            .then(ikp => this._RSA.decrypt(ikp.privateKey, new Uint8Array(cipher)))
-        })
-        .then(plainText => {
-          const pt = this._utils.ua2utf8(plainText)
-          console.log(pt)
-          resolve(pt === "shibboleth")
-        })
-        .catch(() => resolve(false))
-    })
-  }
+  // checkPrivateKeyValidity(hcp: models.HealthcareParty | models.Patient): Promise<boolean> {
+  //   return new Promise<boolean>(resolve => {
+  //     this._RSA
+  //       .importKey("jwk", utils.spkiToJwk(utils.hex2ua(hcp.publicKey!)), ["encrypt"])
+  //       .then(k => this._RSA.encrypt(k, this._utils.utf82ua("shibboleth")))
+  //       .then(cipher => {
+  //         const kp = this._RSA.loadKeyPairNotImported(hcp.id!)
+  //         return this._RSA
+  //           .importKeyPair("jwk", kp.privateKey, "jwk", kp.publicKey)
+  //           .then(ikp => this._RSA.decrypt(ikp.privateKey, new Uint8Array(cipher)))
+  //       })
+  //       .then(plainText => {
+  //         const pt = this._utils.ua2utf8(plainText)
+  //         console.log(pt)
+  //         resolve(pt === "shibboleth")
+  //       })
+  //       .catch(() => resolve(false))
+  //   })
+  // }
 
   private throwDetailedExceptionForInvalidParameter(
     argName: string,
