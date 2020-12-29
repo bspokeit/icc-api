@@ -158,27 +158,28 @@ export class RSAUtils {
     publicKeyData: JsonWebKey | ArrayBuffer
   ) {
     var extractable = true
-    var privPromise = this.crypto.subtle.importKey(
-      privateKeyFormat,
-      privateKeydata,
-      this.rsaHashedParams,
-      extractable,
-      ["decrypt"]
-    )
-    var pubPromise = this.crypto.subtle.importKey(
-      publicKeyFormat,
-      publicKeyData,
-      this.rsaHashedParams,
-      extractable,
-      ["encrypt"]
-    )
+    var importedKeyPair: { privateKey?: any; publicKey?: any } = {}
 
-    return Promise.all([pubPromise, privPromise]).then(function(results) {
-      return {
-        publicKey: results[0],
-        privateKey: results[1]
-      }
-    })
+    return this.crypto.subtle
+      .importKey(privateKeyFormat, privateKeydata, this.rsaHashedParams, extractable, ["decrypt"])
+      .then(importedKey => {
+        importedKeyPair.privateKey = importedKey
+      })
+      .then(() => {
+        return this.crypto.subtle.importKey(
+          publicKeyFormat,
+          publicKeyData,
+          this.rsaHashedParams,
+          extractable,
+          ["encrypt"]
+        )
+      })
+      .then(importedKey => {
+        importedKeyPair.publicKey = importedKey
+      })
+      .then(() => {
+        return importedKeyPair
+      })
   }
 
   /**
