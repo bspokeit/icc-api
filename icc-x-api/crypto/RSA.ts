@@ -158,12 +158,13 @@ export class RSAUtils {
     publicKeyData: JsonWebKey | ArrayBuffer
   ) {
     var extractable = true
-    var importedKeyPair: { privateKey?: any; publicKey?: any } = {}
+    var privateKey: CryptoKey
+    var publicKey: CryptoKey
 
     return this.crypto.subtle
       .importKey(privateKeyFormat, privateKeydata, this.rsaHashedParams, extractable, ["decrypt"])
       .then(importedKey => {
-        importedKeyPair.privateKey = importedKey
+        privateKey = importedKey
       })
       .then(() => {
         return this.crypto.subtle.importKey(
@@ -175,10 +176,10 @@ export class RSAUtils {
         )
       })
       .then(importedKey => {
-        importedKeyPair.publicKey = importedKey
+        publicKey = importedKey
       })
       .then(() => {
-        return importedKeyPair
+        return { privateKey, publicKey }
       })
   }
 
