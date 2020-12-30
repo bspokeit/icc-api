@@ -7,6 +7,7 @@ import "mocha"
 import { Api } from "../icc-x-api"
 import { User } from "../icc-api/model/User"
 import { Patient } from "../icc-api/model/Patient"
+import { HealthcareParty } from "../icc-api/model/models"
 
 const privateKeys: { [key: string]: string } = {
   "37d470b5-1931-40e2-b959-af38545d8b67":
@@ -38,6 +39,27 @@ async function loadPrivateKeys(api: any, user: User) {
 }
 
 describe("Create a patient from scratch", () => {
+  it("The HCP private and public keys should match", async () => {
+    const user = await api.userApi.getCurrentUser()
+    await loadPrivateKeys(api, user)
+
+    var defaultHcp: HealthcareParty | null = null
+    var error: any | null = null
+
+    try {
+      defaultHcp = await api.healthcarePartyApi.getCurrentHealthcareParty()
+    } catch (e) {
+      error = e
+    }
+
+    expect(error).to.not.exist
+    expect(defaultHcp!!).to.exist
+    expect(defaultHcp!!.publicKey).to.exist
+
+    const validKeyPair = await api.cryptoApi.checkPrivateKeyValidity(defaultHcp!!)
+    expect(validKeyPair).to.equal(true)
+  })
+
   it("should create a patient in the database", async () => {
     try {
       const user = await api.userApi.getCurrentUser()
@@ -101,29 +123,29 @@ describe("Init confidential delegation in patient", () => {
   })
 })
 
-describe("Test that patient information can be decrypted", () => {
-  it("should return a contact with decrypted information", async () => {
-    try {
-      const user = await api.userApi.getCurrentUser()
-      await loadPrivateKeys(api, user)
+// describe("Test that patient information can be decrypted", () => {
+//   it("should return a contact with decrypted information", async () => {
+//     try {
+//       const user = await api.userApi.getCurrentUser()
+//       await loadPrivateKeys(api, user)
 
-      const pat = await api.patientApi.getPatientWithUser(
-        user,
-        "Pat_2015022022080888491_ms-gerard-delacroix-prd-10c50a01-5670-477b-a4a1-e6bb737325ce"
-      )
+//       const pat = await api.patientApi.getPatientWithUser(
+//         user,
+//         "Pat_2015022022080888491_ms-gerard-delacroix-prd-10c50a01-5670-477b-a4a1-e6bb737325ce"
+//       )
 
-      expect(pat.delegations).to.not.empty
+//       expect(pat.delegations).to.not.empty
 
-      const contacts = await api.contactApi.findBy(user.healthcarePartyId!, pat)
-      const hes = await api.healthcareElementApi.findBy(user.healthcarePartyId!, pat)
+//       const contacts = await api.contactApi.findBy(user.healthcarePartyId!, pat)
+//       const hes = await api.healthcareElementApi.findBy(user.healthcarePartyId!, pat)
 
-      expect(contacts).to.not.empty
-      expect(hes).to.not.empty
-    } catch (e) {
-      console.log(e)
-    }
-  })
-})
+//       expect(contacts).to.not.empty
+//       expect(hes).to.not.empty
+//     } catch (e) {
+//       console.log(e)
+//     }
+//   })
+// })
 
 describe("Test that contact information can be decrypted", () => {
   it("should return a contact with decrypted information", async () => {
@@ -150,6 +172,12 @@ describe("Test that contact information can be decrypted", () => {
                   compoundValue: [
                     { content: { fr: { stringValue: "Salut" } } },
                     { content: { fr: { stringValue: "à toi" } } }
+                  ]
+                },
+                nl: {
+                  compoundValue: [
+                    { content: { fr: { stringValue: "Halo" } } },
+                    { content: { fr: { stringValue: "allemaal" } } }
                   ]
                 }
               }

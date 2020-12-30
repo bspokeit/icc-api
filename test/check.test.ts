@@ -40,9 +40,9 @@ describe("Do the test default objects exist in the local DB ?", () => {
     }
 
     expect(error).to.not.exist
-    expect(defaultUser).to.exist
-    expect(defaultUser.id).to.equal(DEFAULT_USER._id)
-    expect(defaultUser.healthcarePartyId).to.equal(DEFAULT_HCP._id)
+    expect(defaultUser!!).to.exist
+    expect(defaultUser!!.id).to.equal(DEFAULT_USER._id)
+    expect(defaultUser!!.healthcarePartyId).to.equal(DEFAULT_HCP._id)
   })
 
   it("It should be possible to grab the current user HCP the local server", async () => {
@@ -56,9 +56,9 @@ describe("Do the test default objects exist in the local DB ?", () => {
     }
 
     expect(error).to.not.exist
-    expect(defaultHcp).to.exist
-    expect(defaultHcp.id).to.equal(DEFAULT_HCP._id)
-    expect(defaultHcp.parentId).to.equal(DEFAULT_PARENT._id)
+    expect(defaultHcp!!).to.exist
+    expect(defaultHcp!!.id).to.equal(DEFAULT_HCP._id)
+    expect(defaultHcp!!.parentId).to.equal(DEFAULT_PARENT._id)
   })
 
   it("It should be possible to grab the current user parent HCP the local server", async () => {
@@ -77,7 +77,7 @@ describe("Do the test default objects exist in the local DB ?", () => {
 
     try {
       defaultParent = await api.healthcarePartyApi.getHealthcareParty(
-        defaultHcp.parentId || "fake_id",
+        defaultHcp!!.parentId || "fake_id",
         true
       )
     } catch (e) {
@@ -85,8 +85,8 @@ describe("Do the test default objects exist in the local DB ?", () => {
     }
 
     expect(error).to.not.exist
-    expect(defaultParent).to.exist
-    expect(defaultParent.id).to.equal(DEFAULT_PARENT._id)
+    expect(defaultParent!!).to.exist
+    expect(defaultParent!!.id).to.equal(DEFAULT_PARENT._id)
   })
 })
 
@@ -102,7 +102,7 @@ describe("Does the HCP has its key pair well defined ?", () => {
     }
 
     expect(error).to.not.exist
-    expect(defaultHcp).to.exist
-    expect(defaultHcp.publicKey).to.exist
+    expect(defaultHcp!!).to.exist
+    expect(defaultHcp!!.publicKey).to.exist
   })
 })
