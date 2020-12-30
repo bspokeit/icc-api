@@ -97,7 +97,7 @@ export class RSAUtils {
    */
   encrypt(publicKey: CryptoKey, plainData: Uint8Array) {
     return new Promise((resolve: (value: ArrayBuffer) => any, reject) => {
-      this.crypto.subtle.encrypt(this.rsaParams, publicKey, plainData).then(resolve, reject)
+      this.crypto.subtle.encrypt(this.rsaHashedParams, publicKey, plainData).then(resolve, reject)
     })
   }
 
@@ -108,7 +108,9 @@ export class RSAUtils {
    */
   decrypt(privateKey: CryptoKey, encryptedData: Uint8Array): Promise<ArrayBuffer> {
     return new Promise((resolve: (value: ArrayBuffer) => any, reject) => {
-      this.crypto.subtle.decrypt(this.rsaParams, privateKey, encryptedData).then(resolve, reject)
+      this.crypto.subtle
+        .decrypt(this.rsaHashedParams, privateKey, encryptedData)
+        .then(resolve, reject)
     })
   }
 
