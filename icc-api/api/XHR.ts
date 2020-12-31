@@ -86,7 +86,7 @@ export namespace XHR {
     const clientTimeout =
       headers &&
       headers.find(it => (it.header ? it.header.toUpperCase() === "X-CLIENT-SIDE-TIMEOUT" : false))
-    const timeout = clientTimeout ? Number(clientTimeout.data) : 600000
+    const timeout = clientTimeout ? Number(clientTimeout.data) : 30000
     return fetchWithTimeout(
       url,
       Object.assign(
