@@ -1595,7 +1595,6 @@ export class IccCryptoXApi {
           return this._RSA.importKeyPair("jwk", kp.privateKey, "jwk", kp.publicKey).then(ikp => {
             this._RSA.decrypt(ikp.privateKey, new Uint8Array(cipher)).then(plainText => {
               const pt = this._utils.ua2utf8(plainText)
-              console.log(pt)
               resolve(pt === "shibboleth")
             })
           })
