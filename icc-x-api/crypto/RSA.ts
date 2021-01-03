@@ -62,15 +62,23 @@ export class RSAUtils {
     privKeyFormat: string,
     pubKeyFormat: string
   ) {
-    var pubPromise = this.crypto.subtle.exportKey(pubKeyFormat, keyPair.publicKey)
-    var privPromise = this.crypto.subtle.exportKey(privKeyFormat, keyPair.privateKey)
+    var privateKey: any
+    var publicKey: any
 
-    return Promise.all([pubPromise, privPromise]).then(function(results) {
-      return {
-        publicKey: results[0],
-        privateKey: results[1]
-      }
-    })
+    return this.crypto.subtle
+      .exportKey(pubKeyFormat, keyPair.publicKey)
+      .then(exportedKey => {
+        publicKey = exportedKey as CryptoKey
+      })
+      .then(() => {
+        return this.crypto.subtle.exportKey(privKeyFormat, keyPair.privateKey)
+      })
+      .then(exportedKey => {
+        privateKey = exportedKey as CryptoKey
+      })
+      .then(() => {
+        return { privateKey, publicKey }
+      })
   }
 
   /**
