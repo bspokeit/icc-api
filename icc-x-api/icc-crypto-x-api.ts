@@ -1538,6 +1538,7 @@ export class IccCryptoXApi {
   ): PromiseLike<models.HealthcareParty | models.Patient> {
     //Preload hcp and patient because we need them and they are going to be invalidated from the caches
     return this.utils.notConcurrent(this.generateKeyConcurrencyMap, ownerId, () =>
+      //  The following promise.all is crypto safe
       Promise.all([this.getHcpOrPatient(ownerId), this.getHcpOrPatient(delegateId)]).then(
         ([owner, delegate]) => {
           if ((owner.hcPartyKeys || {})[delegateId]) {
@@ -1551,22 +1552,34 @@ export class IccCryptoXApi {
             delegate.publicKey
               ? this._AES
                   .generateCryptoKey(true)
-                  .then(AESKey => {
+                  .then(async AESKey => {
                     const ownerPubKey = utils.spkiToJwk(utils.hex2ua(owner.publicKey!))
                     const delegatePubKey = utils.spkiToJwk(utils.hex2ua(delegate.publicKey!))
 
-                    return Promise.all([
-                      this._RSA.importKey("jwk", ownerPubKey, ["encrypt"]),
-                      this._RSA.importKey("jwk", delegatePubKey, ["encrypt"])
-                    ]).then(([ownerImportedKey, delegateImportedKey]) =>
-                      Promise.all([
-                        this._RSA.encrypt(ownerImportedKey, this._utils.hex2ua(AESKey as string)),
-                        this._RSA.encrypt(delegateImportedKey, this._utils.hex2ua(AESKey as string))
+                    try {
+                      const ownerImportedKey = await this._RSA.importKey("jwk", ownerPubKey, [
+                        "encrypt"
                       ])
-                    )
+                      const delegateImportedKey = await this._RSA.importKey("jwk", delegatePubKey, [
+                        "encrypt"
+                      ])
+
+                      return {
+                        ownerKey: await this._RSA.encrypt(
+                          ownerImportedKey,
+                          this._utils.hex2ua(AESKey as string)
+                        ),
+                        delegateKey: await this._RSA.encrypt(
+                          delegateImportedKey,
+                          this._utils.hex2ua(AESKey as string)
+                        )
+                      }
+                    } catch (e) {
+                      throw e
+                    }
                   })
                   .then(
-                    ([ownerKey, delegateKey]) =>
+                    ({ ownerKey, delegateKey }) =>
                       (owner.hcPartyKeys![delegateId] = [
                         this._utils.ua2hex(ownerKey),
                         this._utils.ua2hex(delegateKey)
