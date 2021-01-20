@@ -75,18 +75,19 @@ export class IccContactXApi extends IccContactApi {
     const hcpId = user.healthcarePartyId || user.patientId
     return this.crypto
       .extractPreferredSfk(patient, hcpId!!, confidential)
-      .then(key => {
+      .then(async key => {
         if (!key) {
           console.error(
             `SFK cannot be found for HealthElement ${key}. The health element will not be reachable from the patient side`
           )
         }
-        return Promise.all([
-          this.crypto.initObjectDelegations(contact, patient, hcpId!, key),
-          this.crypto.initEncryptionKeys(contact, hcpId!)
-        ])
+
+        return {
+          dels: await this.crypto.initObjectDelegations(contact, patient, hcpId!, key),
+          eks: await this.crypto.initEncryptionKeys(contact, hcpId!)
+        }
       })
-      .then(([dels, eks]) => {
+      .then(({ dels, eks }) => {
         _.extend(contact, {
           delegations: dels.delegations,
           cryptedForeignKeys: dels.cryptedForeignKeys,
