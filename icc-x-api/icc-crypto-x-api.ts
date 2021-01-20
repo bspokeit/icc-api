@@ -64,6 +64,7 @@ export class IccCryptoXApi {
   private forceGetHcPartyKeysForDelegate(
     delegateHcPartyId: string
   ): Promise<{ [delegatorId: string]: string } | {}> {
+    //  This Promise all is safe from the crypto point of view
     return Promise.all([
       this.patientBaseApi.getPatientHcPartyKeysForDelegate(delegateHcPartyId).catch(() => {}),
       this.hcpartyBaseApi.getHcPartyKeysForDelegate(delegateHcPartyId).catch(() => {})
@@ -366,7 +367,7 @@ export class IccCryptoXApi {
    *
    * 1. Get the keys for the delegateHealthCareParty (cache/backend).
    * 2. For each key in the delegators, decrypt it with the delegate's private key
-   * 3. Filter out undefined keys and return them
+   * 3. Return all defined keys as an array
    *
    * @param delegatorsHcPartyIdsSet array of delegator HcP IDs that could have delegated something to the HcP with ID `delegateHcPartyId`
    * @param delegateHcPartyId the HcP for which the HcPs with IDs in `delegatorsHcPartyIdsSet` could have delegated something
@@ -386,22 +387,33 @@ export class IccCryptoXApi {
     ).then((delegatorIDsWithDelegateEncryptedHcPartyKey: { [delegatorId: string]: string }) => {
       // [key: delegatorId] = delegateEncryptedHcPartyKey
       // For each delegatorId, obtain the AES key (decrypted HcParty Key) shared with the delegate, decrypted by the delegate
-      return Promise.all(
-        delegatorsHcPartyIdsSet.map((delegatorId: string) => {
-          if (!delegatorIDsWithDelegateEncryptedHcPartyKey[delegatorId]) {
-            return undefined
-          }
-          return this.decryptHcPartyKey(
-            delegatorId,
-            delegateHcPartyId,
-            delegatorIDsWithDelegateEncryptedHcPartyKey[delegatorId]
-          ).catch(() => {
-            console.log(`failed to decrypt hcPartyKey from ${delegatorId} to ${delegateHcPartyId}`)
-            return undefined
+      return _.reduce(
+        delegatorsHcPartyIdsSet,
+        (acc, delegatorId) => {
+          acc = acc.then(hcPartyKeys => {
+            if (!delegatorIDsWithDelegateEncryptedHcPartyKey[delegatorId]) {
+              return hcPartyKeys
+            }
+            return this.decryptHcPartyKey(
+              delegatorId,
+              delegateHcPartyId,
+              delegatorIDsWithDelegateEncryptedHcPartyKey[delegatorId]
+            )
+              .then(hcPartyKey => {
+                hcPartyKeys.push(hcPartyKey)
+                return hcPartyKeys
+              })
+              .catch(() => {
+                console.log(
+                  `failed to decrypt hcPartyKey from ${delegatorId} to ${delegateHcPartyId}`
+                )
+                return hcPartyKeys
+              })
           })
-        })
-      ).then(hcPartyKeys =>
-        hcPartyKeys.filter(<T>(hcPartyKey: T | undefined): hcPartyKey is T => !!hcPartyKey)
+
+          return acc
+        },
+        Promise.resolve([] as { delegatorId: string; key: CryptoKey; rawKey: string }[])
       )
     })
   }
