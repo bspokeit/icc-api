@@ -741,57 +741,6 @@ export class IccPatientXApi extends IccPatientApi {
             .then(() => {
               return results
             })
-
-          // return Promise.all(
-          //   pats.map(p => {
-          //     return p.encryptedSelf
-          //       ? this.crypto
-          //           .extractKeysFromDelegationsForHcpHierarchy(
-          //             hcpId!,
-          //             p.id!,
-          //             _.size(p.encryptionKeys) ? p.encryptionKeys! : p.delegations!
-          //           )
-          //           .then(({ extractedKeys: sfks }) => {
-          //             if (!sfks || !sfks.length) {
-          //               //console.log("Cannot decrypt contact", ctc.id)
-          //               return Promise.resolve(p)
-          //             }
-          //             return this.crypto.AES.importKey(
-          //               "raw",
-          //               utils.hex2ua(sfks[0].replace(/-/g, ""))
-          //             ).then(key =>
-          //               utils
-          //                 .decrypt(p, ec =>
-          //                   this.crypto.AES.decrypt(key, ec)
-          //                     .then(dec => {
-          //                       const jsonContent = dec && utils.ua2utf8(dec)
-          //                       try {
-          //                         return JSON.parse(jsonContent)
-          //                       } catch (e) {
-          //                         console.log(
-          //                           "Cannot parse patient",
-          //                           p.id,
-          //                           jsonContent || "Invalid content"
-          //                         )
-          //                         return p
-          //                       }
-          //                     })
-          //                     .catch(err => {
-          //                       console.log("Cannot decrypt patient", p.id, err)
-          //                       return p
-          //                     })
-          //                 )
-          //                 .then(p => {
-          //                   if (p.picture && !(p.picture instanceof ArrayBuffer)) {
-          //                     p.picture = decodeBase64(p.picture)
-          //                   }
-          //                   return p
-          //                 })
-          //             )
-          //           })
-          //       : Promise.resolve(p)
-          //   })
-          // )
         })
     })
   }
