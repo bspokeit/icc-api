@@ -485,23 +485,23 @@ export class IccCryptoXApi {
       .then(encryptedHcPartyKey =>
         this.decryptHcPartyKey(ownerId, ownerId, encryptedHcPartyKey, true)
       )
-      .then(importedAESHcPartyKey =>
-        Promise.all([
-          this._AES.encrypt(
+      .then(async importedAESHcPartyKey => {
+        return {
+          dels: await this._AES.encrypt(
             importedAESHcPartyKey.key,
             utils.text2ua(createdObject.id + ":" + secretId).buffer as ArrayBuffer,
             importedAESHcPartyKey.rawKey
           ),
-          parentObject
-            ? this._AES.encrypt(
+          cfks: parentObject
+            ? await this._AES.encrypt(
                 importedAESHcPartyKey.key,
                 utils.text2ua(createdObject.id + ":" + parentObject.id).buffer as ArrayBuffer,
                 importedAESHcPartyKey.rawKey
               )
-            : Promise.resolve(null)
-        ])
-      )
-      .then(encryptedDelegationAndSecretForeignKey => ({
+            : null
+        }
+      })
+      .then(({ dels, cfks }) => ({
         delegations: _.fromPairs([
           [
             ownerId,
@@ -509,13 +509,13 @@ export class IccCryptoXApi {
               {
                 owner: ownerId,
                 delegatedTo: ownerId,
-                key: this._utils.ua2hex(encryptedDelegationAndSecretForeignKey[0]!)
+                key: this._utils.ua2hex(dels!)
               }
             ]
           ]
         ]),
         cryptedForeignKeys:
-          (encryptedDelegationAndSecretForeignKey[1] &&
+          (cfks &&
             _.fromPairs([
               [
                 ownerId,
@@ -523,7 +523,7 @@ export class IccCryptoXApi {
                   {
                     owner: ownerId,
                     delegatedTo: ownerId,
-                    key: this._utils.ua2hex(encryptedDelegationAndSecretForeignKey[1]!)
+                    key: this._utils.ua2hex(cfks!)
                   }
                 ]
               ]
