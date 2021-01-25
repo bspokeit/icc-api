@@ -682,7 +682,7 @@ export class IccDocumentXApi extends IccDocumentApi {
     hcpartyId: string,
     documents: Array<models.Document>
   ): Promise<Array<models.Document> | void> {
-    const chainedPromise = _.reduce(
+    return _.reduce(
       documents,
       (acc, document) => {
         acc = acc.then(decryptedDocs => {
@@ -731,9 +731,7 @@ export class IccDocumentXApi extends IccDocumentApi {
         return acc
       },
       Promise.resolve([] as models.Document[])
-    )
-
-    return chainedPromise.catch((e: Error) => {
+    ).catch((e: Error) => {
       console.log(e)
     })
   }
