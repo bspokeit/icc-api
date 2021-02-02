@@ -125,12 +125,30 @@ export namespace XHR {
       fetchImpl
     ).then(async function(response) {
       if (response.status >= 400) {
-        const error: {
-          error: string
-          message: string
-          status: number
-        } = await response.json()
-        throw new XHRError(url, error.message, error.status, error.error, response.headers)
+        try {
+          const error: {
+            error: string
+            message: string
+            status: number
+          } = await response.json()
+          throw new XHRError(
+            url,
+            error.message || "Unknown",
+            error.status,
+            error.error || "Unknown",
+            response.headers
+          )
+        } catch (e) {
+          //  Unable to parse the response. Fallback to response parsing
+        }
+
+        throw new XHRError(
+          url,
+          response.statusText || "Unknown",
+          response.status,
+          "Unknown",
+          response.headers
+        )
       }
       const ct = contentTypeOverride || response.headers.get("content-type") || "text/plain"
       return (ct.startsWith("application/json")
