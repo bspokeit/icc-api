@@ -1,12 +1,13 @@
 import { IccHcpartyApi, IccPatientApi } from "../icc-api"
-import { AES, AESUtils } from "./crypto/AES"
-import { RSA, RSAUtils } from "./crypto/RSA"
+import { AESUtils } from "./crypto/AES"
+import { RSAUtils } from "./crypto/RSA"
 import { utils, UtilsClass } from "./crypto/utils"
-import { shamir, ShamirClass } from "./crypto/shamir"
+import { ShamirClass } from "./crypto/shamir"
 
 import * as _ from "lodash"
 import * as models from "../icc-api/model/models"
 import { Delegation, HealthcareParty, Patient } from "../icc-api/model/models"
+import { LocalStorageProxy } from "./storage/storage-proxy"
 
 export class IccCryptoXApi {
   get shamir(): ShamirClass {
@@ -75,6 +76,7 @@ export class IccCryptoXApi {
   private hcpartyBaseApi: IccHcpartyApi
   private patientBaseApi: IccPatientApi
   private crypto: Crypto
+  private storage: LocalStorageProxy
 
   private generateKeyConcurrencyMap: { [key: string]: PromiseLike<HealthcareParty | Patient> }
 
@@ -97,8 +99,8 @@ export class IccCryptoXApi {
     this.hcpartyBaseApi = hcpartyBaseApi
     this.patientBaseApi = patientBaseApi
     this.crypto = crypto
+    this.storage = LocalStorageProxy.getInstance()
     this.generateKeyConcurrencyMap = {}
-
     this._AES = new AESUtils(crypto)
     this._RSA = new RSAUtils(crypto)
     this._utils = new UtilsClass()
@@ -1432,7 +1434,7 @@ export class IccCryptoXApi {
   // noinspection JSUnusedGlobalSymbols
   loadKeyPairsInBrowserLocalStorage(healthcarePartyId: string, file: Blob) {
     const fr = new FileReader()
-    return new Promise((resolve: (() => void), reject) => {
+    return new Promise((resolve: ((value: unknown) => void), reject) => {
       fr.onerror = reject
       fr.onabort = reject
       fr.onload = (e: any) => {
@@ -1448,14 +1450,14 @@ export class IccCryptoXApi {
 
   // noinspection JSUnusedGlobalSymbols
   saveKeychainInBrowserLocalStorage(id: string, keychain: number) {
-    localStorage.setItem(
+    this.storage.setItem(
       this.keychainLocalStoreIdPrefix + id,
       btoa(new Uint8Array(keychain).reduce((data, byte) => data + String.fromCharCode(byte), ""))
     )
   }
 
   saveKeychainInBrowserLocalStorageAsBase64(id: string, keyChainB64: string) {
-    localStorage.setItem(this.keychainLocalStoreIdPrefix + id, keyChainB64)
+    this.storage.setItem(this.keychainLocalStoreIdPrefix + id, keyChainB64)
   }
 
   saveKeyChainInHCPFromLocalStorage(hcpId: string): Promise<HealthcareParty> {
@@ -1509,12 +1511,12 @@ export class IccCryptoXApi {
   }
 
   getKeychainInBrowserLocalStorageAsBase64(id: string) {
-    return localStorage.getItem(this.keychainLocalStoreIdPrefix + id)
+    return this.storage.getItem(this.keychainLocalStoreIdPrefix + id)
   }
 
   // noinspection JSUnusedGlobalSymbols
   loadKeychainFromBrowserLocalStorage(id: String) {
-    const lsItem = localStorage.getItem("org.taktik.icure.ehealth.keychain." + id)
+    const lsItem = this.storage.getItem("org.taktik.icure.ehealth.keychain." + id)
     return lsItem !== null ? this._utils.base64toByteArray(lsItem) : null
   }
 

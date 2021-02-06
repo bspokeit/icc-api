@@ -1,3 +1,5 @@
+import { LocalStorageProxy } from "../storage/storage-proxy"
+
 export class RSAUtils {
   /********* RSA Config **********/
   //TODO bigger modulus
@@ -14,6 +16,7 @@ export class RSAUtils {
   rsaLocalStoreIdPrefix: string = "org.taktik.icure.rsa."
   rsaKeyPairs: any = {}
   private crypto: Crypto
+  private storage: LocalStorageProxy
 
   constructor(
     crypto: Crypto = typeof window !== "undefined"
@@ -23,6 +26,7 @@ export class RSAUtils {
         : ({} as Crypto)
   ) {
     this.crypto = crypto
+    this.storage = LocalStorageProxy.getInstance()
   }
 
   /**
@@ -33,7 +37,7 @@ export class RSAUtils {
    */
   generateKeyPair() {
     var extractable = true
-    var keyUsages = ["decrypt", "encrypt"]
+    var keyUsages: KeyUsage[] = ["decrypt", "encrypt"]
 
     return new Promise((resolve: (value: CryptoKey | CryptoKeyPair) => any, reject) => {
       this.crypto.subtle
@@ -93,7 +97,7 @@ export class RSAUtils {
    */
   encrypt(publicKey: CryptoKey, plainData: Uint8Array) {
     return new Promise((resolve: (value: ArrayBuffer) => any, reject) => {
-      this.crypto.subtle.encrypt(this.rsaParams, publicKey, plainData).then(resolve, reject)
+      this.crypto.subtle.encrypt(this.rsaHashedParams, publicKey, plainData).then(resolve, reject)
     })
   }
 
@@ -104,7 +108,9 @@ export class RSAUtils {
    */
   decrypt(privateKey: CryptoKey, encryptedData: Uint8Array): Promise<ArrayBuffer> {
     return new Promise((resolve: (value: ArrayBuffer) => any, reject) => {
-      this.crypto.subtle.decrypt(this.rsaParams, privateKey, encryptedData).then(resolve, reject)
+      this.crypto.subtle
+        .decrypt(this.rsaHashedParams, privateKey, encryptedData)
+        .then(resolve, reject)
     })
   }
 
@@ -119,7 +125,7 @@ export class RSAUtils {
     var extractable = true
     return new Promise((resolve: (value: CryptoKey) => any, reject) => {
       this.crypto.subtle
-        .importKey(format, keydata, this.rsaHashedParams, extractable, keyUsages)
+        .importKey(format, keydata, this.rsaHashedParams, extractable, keyUsages as KeyUsage[])
         .then(resolve, reject)
     })
   }
@@ -183,12 +189,8 @@ export class RSAUtils {
    * @param keyPair should be JWK
    */
   storeKeyPair(id: string, keyPair: { publicKey: any; privateKey: any }) {
-    if (typeof Storage === "undefined") {
-      console.log("Your browser does not support HTML5 Browser Local Storage !")
-      throw "Your browser does not support HTML5 Browser Local Storage !"
-    }
     //TODO encryption
-    localStorage.setItem(this.rsaLocalStoreIdPrefix + id, JSON.stringify(keyPair))
+    this.storage.setItem(this.rsaLocalStoreIdPrefix + id, JSON.stringify(keyPair))
   }
 
   /**
@@ -198,12 +200,8 @@ export class RSAUtils {
    * @returns {Object} it is in JWK - not imported
    */
   loadKeyPairNotImported(id: string): { publicKey: any; privateKey: any } {
-    if (typeof Storage === "undefined") {
-      console.log("Your browser does not support HTML5 Browser Local Storage !")
-      throw "Your browser does not support HTML5 Browser Local Storage !"
-    }
     //TODO decryption
-    return JSON.parse((localStorage.getItem(this.rsaLocalStoreIdPrefix + id) as string) || "{}")
+    return JSON.parse((this.storage.getItem(this.rsaLocalStoreIdPrefix + id) as string) || "{}")
   }
 
   /**
@@ -216,7 +214,7 @@ export class RSAUtils {
     return new Promise(
       (resolve: (value: { publicKey: CryptoKey; privateKey: CryptoKey }) => any, reject) => {
         try {
-          const jwkKey = localStorage.getItem(this.rsaLocalStoreIdPrefix + id) as string
+          const jwkKey = this.storage.getItem(this.rsaLocalStoreIdPrefix + id) as string
           if (jwkKey) {
             const jwkKeyPair = JSON.parse(jwkKey)
             if (jwkKeyPair.publicKey && jwkKeyPair.privateKey) {
@@ -244,5 +242,3 @@ export class RSAUtils {
     )
   }
 }
-
-export const RSA = new RSAUtils()
