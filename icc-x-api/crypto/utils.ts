@@ -2,10 +2,11 @@ import * as base64js from "base64-js"
 import * as moment from "moment"
 import { Moment } from "moment"
 import * as _ from "lodash"
+import * as encoding from "text-encoding"
 
 export class UtilsClass {
-  private textDecoder = TextDecoder ? new TextDecoder() : null
-  private textEncoder = TextEncoder ? new TextEncoder() : null
+  private textDecoder = new encoding.TextDecoder()
+  private textEncoder = new encoding.TextEncoder()
 
   constructor() {}
 

@@ -47,18 +47,35 @@ export class IccAccesslogXApi extends IccAccesslogApi {
 
     return this.crypto
       .extractDelegationsSFKs(patient, hcpId)
-      .then(secretForeignKeys =>
-        Promise.all([
-          this.crypto.initObjectDelegations(
-            accessslog,
-            patient,
-            hcpId!,
-            secretForeignKeys.extractedKeys[0]
-          ),
-          this.crypto.initEncryptionKeys(accessslog, hcpId!)
-        ])
-      )
-      .then(([dels, eks]) => {
+      .then(secretForeignKeys => {
+        var delegations: {
+          delegations: any
+          cryptedForeignKeys: any
+          secretForeignKeys: any[]
+          secretId: string
+        }
+
+        var encryptionKeys: {
+          encryptionKeys: any
+          secretId: string
+        }
+
+        return this.crypto
+          .initObjectDelegations(accessslog, patient, hcpId!, secretForeignKeys.extractedKeys[0])
+          .then(d => {
+            delegations = d
+          })
+          .then(() => {
+            return this.crypto.initEncryptionKeys(accessslog, hcpId!)
+          })
+          .then(e => {
+            encryptionKeys = e
+          })
+          .then(() => {
+            return { dels: delegations, eks: encryptionKeys }
+          })
+      })
+      .then(({ dels, eks }) => {
         _.extend(accessslog, {
           delegations: dels.delegations,
           cryptedForeignKeys: dels.cryptedForeignKeys,
@@ -138,46 +155,58 @@ export class IccAccesslogXApi extends IccAccesslogApi {
   decrypt(hcpId: string, accessLogs: Array<models.AccessLog>): Promise<Array<models.AccessLog>> {
     //First check that we have no dangling delegation
 
-    return Promise.all(
-      accessLogs.map(accessLog => {
-        return accessLog.encryptedSelf
-          ? this.crypto
-              .extractKeysFromDelegationsForHcpHierarchy(
-                hcpId!,
-                accessLog.id!,
-                _.size(accessLog.encryptionKeys)
-                  ? accessLog.encryptionKeys!
-                  : accessLog.delegations!
-              )
-              .then(({ extractedKeys: sfks }) => {
-                if (!sfks || !sfks.length) {
-                  //console.log("Cannot decrypt contact", ctc.id)
-                  return Promise.resolve(accessLog)
-                }
-                return this.crypto.AES.importKey(
-                  "raw",
-                  utils.hex2ua(sfks[0].replace(/-/g, ""))
-                ).then(key =>
-                  utils.decrypt(accessLog, ec =>
-                    this.crypto.AES.decrypt(key, ec).then(dec => {
-                      const jsonContent = dec && utils.ua2utf8(dec)
-                      try {
-                        return JSON.parse(jsonContent)
-                      } catch (e) {
-                        console.log(
-                          "Cannot parse access log",
-                          accessLog.id,
-                          jsonContent || "Invalid content"
-                        )
-                        return {}
-                      }
-                    })
+    var logs: Array<models.AccessLog> = []
+
+    return accessLogs
+      .reduce((acc, accessLog) => {
+        acc = acc
+          .then(() => {
+            return accessLog.encryptedSelf
+              ? this.crypto
+                  .extractKeysFromDelegationsForHcpHierarchy(
+                    hcpId!,
+                    accessLog.id!,
+                    _.size(accessLog.encryptionKeys)
+                      ? accessLog.encryptionKeys!
+                      : accessLog.delegations!
                   )
-                )
-              })
-          : Promise.resolve(accessLog)
+                  .then(({ extractedKeys: sfks }) => {
+                    if (!sfks || !sfks.length) {
+                      //console.log("Cannot decrypt contact", ctc.id)
+                      return Promise.resolve(accessLog)
+                    }
+                    return this.crypto.AES.importKey(
+                      "raw",
+                      utils.hex2ua(sfks[0].replace(/-/g, ""))
+                    ).then(key =>
+                      utils.decrypt(accessLog, ec =>
+                        this.crypto.AES.decrypt(key, ec).then(dec => {
+                          const jsonContent = dec && utils.ua2utf8(dec)
+                          try {
+                            return JSON.parse(jsonContent)
+                          } catch (e) {
+                            console.log(
+                              "Cannot parse access log",
+                              accessLog.id,
+                              jsonContent || "Invalid content"
+                            )
+                            return {}
+                          }
+                        })
+                      )
+                    )
+                  })
+              : Promise.resolve(accessLog)
+          })
+          .then(log => {
+            logs.push(log)
+          })
+
+        return acc
+      }, Promise.resolve())
+      .then(() => {
+        return logs
       })
-    )
   }
 
   initEncryptionKeys(user: models.User, accessLog: models.AccessLog) {
@@ -211,32 +240,46 @@ export class IccAccesslogXApi extends IccAccesslogApi {
     user: models.User,
     accessLogs: Array<models.AccessLog>
   ): Promise<Array<models.AccessLog>> {
-    return Promise.all(
-      accessLogs.map(accessLog =>
-        (accessLog.encryptionKeys && Object.keys(accessLog.encryptionKeys).length
-          ? Promise.resolve(accessLog)
-          : this.initEncryptionKeys(user, accessLog)
-        )
-          .then(accessLog =>
-            this.crypto.extractKeysFromDelegationsForHcpHierarchy(
-              (user.healthcarePartyId || user.patientId)!,
-              accessLog.id!,
-              accessLog.encryptionKeys!
+    var logs: Array<models.AccessLog> = []
+
+    return accessLogs
+      .reduce((acc, accessLog) => {
+        acc = acc
+          .then(() => {
+            return (accessLog.encryptionKeys && Object.keys(accessLog.encryptionKeys).length
+              ? Promise.resolve(accessLog)
+              : this.initEncryptionKeys(user, accessLog)
             )
-          )
-          .then((eks: { extractedKeys: Array<string>; hcpartyId: string }) =>
-            this.crypto.AES.importKey("raw", utils.hex2ua(eks.extractedKeys[0].replace(/-/g, "")))
-          )
-          .then((key: CryptoKey) =>
-            utils.crypt(
-              accessLog,
-              (obj: { [key: string]: string }) =>
-                this.crypto.AES.encrypt(key, utils.utf82ua(JSON.stringify(obj))),
-              this.cryptedKeys
-            )
-          )
-      )
-    )
+              .then(accessLog =>
+                this.crypto.extractKeysFromDelegationsForHcpHierarchy(
+                  (user.healthcarePartyId || user.patientId)!,
+                  accessLog.id!,
+                  accessLog.encryptionKeys!
+                )
+              )
+              .then((eks: { extractedKeys: Array<string>; hcpartyId: string }) =>
+                this.crypto.AES.importKey(
+                  "raw",
+                  utils.hex2ua(eks.extractedKeys[0].replace(/-/g, ""))
+                )
+              )
+              .then((key: CryptoKey) =>
+                utils.crypt(
+                  accessLog,
+                  (obj: { [key: string]: string }) =>
+                    this.crypto.AES.encrypt(key, utils.utf82ua(JSON.stringify(obj))),
+                  this.cryptedKeys
+                )
+              )
+          })
+          .then(log => {
+            logs.push(log)
+          })
+        return acc
+      }, Promise.resolve())
+      .then(() => {
+        return logs
+      })
   }
 
   createAccessLog(body?: models.AccessLog): never {

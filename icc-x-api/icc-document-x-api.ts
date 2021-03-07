@@ -563,7 +563,7 @@ export class IccDocumentXApi extends IccDocumentApi {
   }
 
   // noinspection JSUnusedGlobalSymbols
-  newInstance(user: models.User, message: models.Message, c: any) {
+  newInstance(user: models.User, message?: models.Message, c: any = {}) {
     const document = _.extend(
       {
         id: this.crypto.randomUuid(),
@@ -575,7 +575,7 @@ export class IccDocumentXApi extends IccDocumentApi {
         codes: [],
         tags: []
       },
-      c || {}
+      c
     )
 
     return this.initDelegationsAndEncryptionKeys(user, message, document)
@@ -583,26 +583,25 @@ export class IccDocumentXApi extends IccDocumentApi {
 
   private initDelegationsAndEncryptionKeys(
     user: models.User,
-    message: models.Message | null,
+    message: models.Message | undefined = undefined,
     document: models.Document
   ): Promise<models.Document> {
     const hcpId = user.healthcarePartyId || user.patientId
     return this.crypto
-      .extractDelegationsSFKs(message, hcpId)
-      .then(secretForeignKeys =>
-        Promise.all([
-          this.crypto.initObjectDelegations(
+      .extractDelegationsSFKs(message || null, hcpId)
+      .then(async secretForeignKeys => {
+        return {
+          dels: await this.crypto.initObjectDelegations(
             document,
             message,
             hcpId!,
             secretForeignKeys.extractedKeys[0]
           ),
-          this.crypto.initEncryptionKeys(document, hcpId!)
-        ])
-      )
+          eks: await this.crypto.initEncryptionKeys(document, hcpId!)
+        }
+      })
       .then(initData => {
-        const dels = initData[0]
-        const eks = initData[1]
+        const { dels, eks } = initData
         _.extend(document, {
           delegations: dels.delegations,
           cryptedForeignKeys: dels.cryptedForeignKeys,
@@ -619,7 +618,7 @@ export class IccDocumentXApi extends IccDocumentApi {
             (promise = promise.then(document =>
               this.crypto
                 .addDelegationsAndEncryptionKeys(
-                  message,
+                  message || null,
                   document,
                   hcpId!,
                   delegateId,
@@ -683,46 +682,56 @@ export class IccDocumentXApi extends IccDocumentApi {
     hcpartyId: string,
     documents: Array<models.Document>
   ): Promise<Array<models.Document> | void> {
-    return Promise.all(
-      documents.map(document =>
-        this.crypto
-          .extractKeysFromDelegationsForHcpHierarchy(
-            hcpartyId,
-            document.id!,
-            _.size(document.encryptionKeys) ? document.encryptionKeys! : document.delegations!
-          )
-          .then(({ extractedKeys: sfks }) => {
-            if (!sfks || !sfks.length) {
-              console.log("Cannot decrypt document", document.id)
-              return Promise.resolve(document)
-            }
+    return _.reduce(
+      documents,
+      (acc, document) => {
+        acc = acc.then(decryptedDocs => {
+          return this.crypto
+            .extractKeysFromDelegationsForHcpHierarchy(
+              hcpartyId,
+              document.id!,
+              _.size(document.encryptionKeys) ? document.encryptionKeys! : document.delegations!
+            )
+            .then(({ extractedKeys: sfks }) => {
+              if (!sfks || !sfks.length) {
+                console.log("Cannot decrypt document", document.id)
+                return Promise.resolve(document)
+              }
 
-            if (sfks.length && document.encryptedSelf) {
-              return this.crypto.AES.importKey("raw", utils.hex2ua(sfks[0].replace(/-/g, "")))
-                .then(
-                  (key: CryptoKey) =>
-                    new Promise((resolve: (value: ArrayBuffer | null) => any) => {
-                      this.crypto.AES.decrypt(
-                        key,
-                        utils.text2ua(atob(document.encryptedSelf!))
-                      ).then(resolve, () => {
-                        console.log("Cannot decrypt document", document.id)
-                        resolve(null)
+              if (sfks.length && document.encryptedSelf) {
+                return this.crypto.AES.importKey("raw", utils.hex2ua(sfks[0].replace(/-/g, "")))
+                  .then(
+                    (key: CryptoKey) =>
+                      new Promise((resolve: (value: ArrayBuffer | null) => any) => {
+                        this.crypto.AES.decrypt(
+                          key,
+                          utils.text2ua(atob(document.encryptedSelf!))
+                        ).then(resolve, () => {
+                          console.log("Cannot decrypt document", document.id)
+                          resolve(null)
+                        })
                       })
-                    })
-                )
-                .then((decrypted: ArrayBuffer | null) => {
-                  if (decrypted) {
-                    document = _.extend(document, JSON.parse(utils.ua2text(decrypted)))
-                  }
-                  return document
-                })
-            } else {
-              return Promise.resolve(document)
-            }
-          })
-      )
-    ).catch(function(e: Error) {
+                  )
+                  .then((decrypted: ArrayBuffer | null) => {
+                    if (decrypted) {
+                      document = _.extend(document, JSON.parse(utils.ua2text(decrypted)))
+                    }
+                    return document
+                  })
+              } else {
+                return Promise.resolve(document)
+              }
+            })
+            .then(dDoc => {
+              decryptedDocs.push(dDoc)
+              return decryptedDocs
+            })
+        })
+
+        return acc
+      },
+      Promise.resolve([] as models.Document[])
+    ).catch((e: Error) => {
       console.log(e)
     })
   }

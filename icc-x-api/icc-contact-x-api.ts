@@ -75,18 +75,19 @@ export class IccContactXApi extends IccContactApi {
     const hcpId = user.healthcarePartyId || user.patientId
     return this.crypto
       .extractPreferredSfk(patient, hcpId!!, confidential)
-      .then(key => {
+      .then(async key => {
         if (!key) {
           console.error(
             `SFK cannot be found for HealthElement ${key}. The health element will not be reachable from the patient side`
           )
         }
-        return Promise.all([
-          this.crypto.initObjectDelegations(contact, patient, hcpId!, key),
-          this.crypto.initEncryptionKeys(contact, hcpId!)
-        ])
+
+        return {
+          dels: await this.crypto.initObjectDelegations(contact, patient, hcpId!, key),
+          eks: await this.crypto.initEncryptionKeys(contact, hcpId!)
+        }
       })
-      .then(([dels, eks]) => {
+      .then(({ dels, eks }) => {
         _.extend(contact, {
           delegations: dels.delegations,
           cryptedForeignKeys: dels.cryptedForeignKeys,
@@ -498,41 +499,51 @@ export class IccContactXApi extends IccContactApi {
   }
 
   decrypt(hcpartyId: string, ctcs: Array<models.Contact>): Promise<Array<models.Contact>> {
-    return Promise.all(
-      ctcs.map(async ctc => {
-        const { extractedKeys: sfks } = await this.crypto.extractKeysFromDelegationsForHcpHierarchy(
-          hcpartyId,
-          ctc.id!,
-          _.size(ctc.encryptionKeys) ? ctc.encryptionKeys! : ctc.delegations!
-        )
-        if (!sfks || !sfks.length) {
-          console.log("Cannot decrypt contact", ctc.id)
-          return ctc
-        }
-        const rawKey = sfks[0].replace(/-/g, "")
-        const key = await this.crypto.AES.importKey("raw", utils.hex2ua(rawKey))
-
-        ctc.services = await this.decryptServices(hcpartyId, ctc.services || [], key, rawKey)
-        if (ctc.encryptedSelf) {
-          try {
-            const dec = await this.crypto.AES.decrypt(
-              key,
-              utils.text2ua(atob(ctc.encryptedSelf!)),
-              rawKey
-            )
-            let jsonContent
-            try {
-              jsonContent = dec && utils.ua2utf8(dec)
-              jsonContent && _.assign(ctc, JSON.parse(jsonContent))
-            } catch (e) {
-              console.log("Cannot parse ctc", ctc.id, jsonContent || "<- Invalid encoding")
-            }
-          } catch {
+    return _.reduce(
+      ctcs,
+      (acc, ctc) => {
+        acc = acc.then(async ctcs => {
+          const {
+            extractedKeys: sfks
+          } = await this.crypto.extractKeysFromDelegationsForHcpHierarchy(
+            hcpartyId,
+            ctc.id!,
+            _.size(ctc.encryptionKeys) ? ctc.encryptionKeys! : ctc.delegations!
+          )
+          if (!sfks || !sfks.length) {
             console.log("Cannot decrypt contact", ctc.id)
+            ctcs.push(ctc)
+            return ctcs
           }
-        }
-        return ctc
-      })
+          const rawKey = sfks[0].replace(/-/g, "")
+          const key = await this.crypto.AES.importKey("raw", utils.hex2ua(rawKey))
+
+          ctc.services = await this.decryptServices(hcpartyId, ctc.services || [], key, rawKey)
+          if (ctc.encryptedSelf) {
+            try {
+              const dec = await this.crypto.AES.decrypt(
+                key,
+                utils.text2ua(atob(ctc.encryptedSelf!)),
+                rawKey
+              )
+              let jsonContent
+              try {
+                jsonContent = dec && utils.ua2utf8(dec)
+                jsonContent && _.assign(ctc, JSON.parse(jsonContent))
+              } catch (e) {
+                console.log("Cannot parse ctc", ctc.id, jsonContent || "<- Invalid encoding")
+              }
+            } catch {
+              console.log("Cannot decrypt contact", ctc.id)
+            }
+          }
+          ctcs.push(ctc)
+          return ctcs
+        })
+
+        return acc
+      },
+      Promise.resolve([] as Array<models.Contact>)
     )
   }
 

@@ -23,7 +23,7 @@ import { Substance } from "../model/Substance"
 import { Vmp } from "../model/Vmp"
 import { VmpGroup } from "../model/VmpGroup"
 
-export class IccBesamv2Api {
+export class IccBeSamv2Api {
   host: string
   headers: Array<XHR.Header>
   fetchImpl?: (input: RequestInfo, init?: RequestInit) => Promise<Response>

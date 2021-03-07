@@ -4,7 +4,6 @@ import { IccDocumentXApi } from "./icc-document-x-api"
 import { IccInvoiceXApi } from "./icc-invoice-x-api"
 
 import * as _ from "lodash"
-import * as moment from "moment"
 
 import {
   AbstractFilterPatient,

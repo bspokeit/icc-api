@@ -12,5 +12,7 @@ import fetch from "node-fetch"
 ;(global as any).Storage = ""
 ;(global as any).TextDecoder = util.TextDecoder
 ;(global as any).TextEncoder = util.TextEncoder
+;(global as any).btoa = (arg: any) => Buffer.from(arg).toString("base64")
+;(global as any).atob = (arg: any) => Buffer.from(arg, "base64").toString()
 
 export const nodeFetch = fetch
